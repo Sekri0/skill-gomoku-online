@@ -14,7 +14,10 @@ let controller: GameController | null = null;
 renderLobby();
 
 function renderLobby(): void {
-  const defaultWs = (import.meta.env.VITE_WS_URL as string | undefined) ?? "ws://127.0.0.1:8080/ws";
+  const runtimeHost = window.location.hostname;
+  const isLocalHost = runtimeHost === "127.0.0.1" || runtimeHost === "localhost";
+  const fallbackWs = isLocalHost ? "ws://127.0.0.1:8080/ws" : `ws://${runtimeHost}/ws`;
+  const defaultWs = (import.meta.env.VITE_WS_URL as string | undefined) ?? fallbackWs;
   appRoot.innerHTML = `
     <div class="app-shell">
       <section class="lobby">

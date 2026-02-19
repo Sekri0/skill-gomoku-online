@@ -1,25 +1,28 @@
-# Tencent Cloud CentOS Deployment (WebSocket + Nginx + PM2)
+# Tencent Cloud CentOS Deployment (Public IP Route, No Domain)
 
-This guide deploys the existing server in this repo to CentOS/OpenCloudOS.
+This guide deploys the current WebSocket server with **public IP + ws**.
+
+Target endpoint for clients:
+
+- `ws://<PUBLIC_IP>/ws`
+
+Health checks:
+
+- `http://<PUBLIC_IP>/health`
 
 ## 1) Prerequisites
 
-- A domain pointing to your server public IP (A record).
-- Ports opened in cloud security group: `22`, `80`, `443`.
-- SSH access as a privileged user.
+- Tencent Cloud security group allows: `22`, `80`.
+- SSH access to your server.
+- CentOS/OpenCloudOS server.
 
-## 2) Bootstrap server dependencies
+## 2) Bootstrap dependencies
 
-Run on the server:
+Run on server:
 
 ```bash
 sudo bash deploy/scripts/centos_bootstrap.sh
 ```
-
-This installs:
-- git, curl, nginx, firewalld
-- Node.js 20
-- pm2
 
 ## 3) Clone and install project
 
@@ -45,53 +48,40 @@ pm2 save
 pm2 startup
 ```
 
-If `pm2 startup` prints an extra command, run that command once, then run `pm2 save` again.
+If `pm2 startup` prints an extra command, run it once and then run:
+
+```bash
+pm2 save
+```
 
 ## 5) Configure Nginx reverse proxy
 
-Copy template and replace domain:
+Template already uses `server_name _;`, no domain replacement needed.
 
 ```bash
 sudo cp deploy/nginx/gomoku.conf /etc/nginx/conf.d/gomoku.conf
-sudo sed -i 's/__DOMAIN__/your-domain.com/g' /etc/nginx/conf.d/gomoku.conf
-```
-
-Validate and reload:
-
-```bash
 sudo nginx -t
 sudo systemctl enable nginx
 sudo systemctl restart nginx
 ```
 
-Health checks:
+## 6) Verify service
 
 ```bash
 curl http://127.0.0.1:8080/health
 curl http://127.0.0.1/health
+curl http://<PUBLIC_IP>/health
 ```
 
-## 6) Enable HTTPS (required for Android production)
+Expected: `ok`
 
-Install certbot (if not already installed), then:
+## 7) Client configuration
 
-```bash
-sudo certbot --nginx -d your-domain.com
-```
+In game lobby:
 
-After success:
-- WebSocket endpoint: `wss://your-domain.com/ws`
-- Health endpoint: `https://your-domain.com/health`
-
-## 7) Frontend runtime endpoint
-
-Set frontend ws url to:
-
-```bash
-VITE_WS_URL=wss://your-domain.com/ws
-```
-
-Then rebuild frontend and (if needed) copy to Capacitor.
+- Server URL: `ws://<PUBLIC_IP>/ws`
+- Same room id for both players
+- Different player names
 
 ## 8) Update deployment later
 
@@ -102,23 +92,22 @@ bash deploy/scripts/deploy_update.sh
 
 ## 9) Troubleshooting
 
-Check port bindings:
-
-```bash
-ss -lntp | grep -E ':80|:443|:8080'
-```
-
-Check PM2:
+Check process and ports:
 
 ```bash
 pm2 ls
 pm2 logs gomoku-ws --lines 200
+ss -lntp | grep -E ':80|:8080'
 ```
 
-Check Nginx:
+Check nginx:
 
 ```bash
 sudo nginx -t
 sudo systemctl status nginx --no-pager -l
 sudo journalctl -u nginx -n 200 --no-pager
 ```
+
+---
+
+Note: this route uses plain `ws` (no TLS). It is suitable for temporary small-group play, not production security.
