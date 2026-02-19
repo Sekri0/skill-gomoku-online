@@ -1,0 +1,27 @@
+{
+  "name": "skill-gomoku-online",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:web": "vite",
+    "dev:server": "npm --prefix server run dev",
+    "dev:server:local": "npm --prefix server run build && npm --prefix server run start",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "cap:init": "npx cap init com.example.skillgomoku \"Skill Gomoku\" --web-dir=dist",
+    "cap:add-android": "npx cap add android",
+    "cap:copy": "npx cap copy android",
+    "cap:open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.1.1",
+    "@capacitor/core": "^7.1.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.1.1",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
+  }
+}

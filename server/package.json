@@ -1,0 +1,19 @@
+{
+  "name": "skill-gomoku-online-server",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "start": "node dist/server/src/index.js",
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@types/ws": "^8.5.13",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
