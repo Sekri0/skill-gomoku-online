@@ -14,7 +14,12 @@ npm install
 npm --prefix server install
 npm --prefix server run build
 
-PORT="$PORT" pm2 restart "$PM2_NAME" --update-env
+if pm2 describe "$PM2_NAME" >/dev/null 2>&1; then
+  PORT="$PORT" pm2 restart "$PM2_NAME" --update-env
+else
+  PORT="$PORT" pm2 start "npm --prefix server run start" --name "$PM2_NAME" --update-env
+fi
+
 pm2 save
 
 echo "Updated and restarted:"
