@@ -6,8 +6,14 @@ import type {
 } from "../core/types";
 
 export type ErrorCode =
+  | "AUTH_REQUIRED"
+  | "AUTH_FAILED"
+  | "USER_EXISTS"
   | "ROOM_FULL"
+  | "ROOM_LIMIT_REACHED"
   | "ROOM_NOT_FOUND"
+  | "ALREADY_IN_ROOM"
+  | "NOT_HOST"
   | "INVALID_ACTION"
   | "NOT_YOUR_TURN"
   | "SKILL_USED"
@@ -20,14 +26,48 @@ export interface RoomPlayerView {
   name: string;
   color: Color;
   online: boolean;
+  isHost: boolean;
+}
+
+export type RoomStatus = "waiting" | "playing" | "finished";
+
+export interface RoomSummary {
+  roomId: string;
+  hostName: string;
+  hostColor: Color;
+  players: number;
+  status: RoomStatus;
 }
 
 export type ClientToServerMessage =
   | {
+      type: "register";
+      username: string;
+      password: string;
+    }
+  | {
+      type: "login";
+      username: string;
+      password: string;
+    }
+  | {
+      type: "authWithToken";
+      token: string;
+    }
+  | {
+      type: "listRooms";
+    }
+  | {
+      type: "createRoom";
+      preferredColor: Color;
+    }
+  | {
       type: "joinRoom";
       roomId: string;
-      playerName: string;
-      sessionId?: string;
+    }
+  | {
+      type: "leaveRoom";
+      roomId: string;
     }
   | {
       type: "ready";
@@ -39,15 +79,40 @@ export type ClientToServerMessage =
       seq: number;
       action: Action;
     }
+  | {
+      type: "rematchRequest";
+      roomId: string;
+      swapColors: boolean;
+    }
   | { type: "ping" };
 
 export type ServerToClientMessage =
   | {
+      type: "authOk";
+      username: string;
+      token: string;
+    }
+  | {
+      type: "authError";
+      code: "AUTH_FAILED" | "USER_EXISTS";
+      message: string;
+    }
+  | {
+      type: "lobbyState";
+      maxRooms: number;
+      rooms: RoomSummary[];
+    }
+  | {
+      type: "roomCreated";
+      roomId: string;
+    }
+  | {
       type: "joined";
       roomId: string;
-      sessionId: string;
       seat: PlayerId;
       color: Color;
+      isHost: boolean;
+      username: string;
     }
   | {
       type: "roomState";
@@ -78,6 +143,10 @@ export type ServerToClientMessage =
       seat: PlayerId;
     }
   | {
+      type: "roomClosed";
+      roomId: string;
+    }
+  | {
       type: "gameOver";
       roomId: string;
       winner: {
@@ -86,6 +155,11 @@ export type ServerToClientMessage =
       };
       version: number;
       state: SerializedGameState;
+    }
+  | {
+      type: "rematchRequested";
+      roomId: string;
+      swapColors: boolean;
     }
   | { type: "pong" }
   | {

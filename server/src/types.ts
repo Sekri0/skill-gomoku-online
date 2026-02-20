@@ -3,14 +3,15 @@ import type { GameState, PlayerId } from "../../shared/types";
 
 export interface ClientMeta {
   socket: WebSocket;
-  roomId: string;
-  seat: PlayerId;
-  sessionId: string;
+  token: string | null;
+  username: string | null;
+  roomId: string | null;
+  seat: PlayerId | null;
   lastPingAt: number;
 }
 
 export interface RoomPlayer {
-  sessionId: string;
+  token: string;
   name: string;
   online: boolean;
 }
@@ -20,7 +21,9 @@ export interface RoomState {
   version: number;
   game: GameState;
   readyMap: Record<PlayerId, boolean>;
+  rematchVotes: Record<PlayerId, { swapColors: boolean } | null>;
   players: Record<PlayerId, RoomPlayer | null>;
   sockets: Record<PlayerId, WebSocket | null>;
   reconnectTimers: Record<PlayerId, NodeJS.Timeout | null>;
+  hostSeat: PlayerId;
 }

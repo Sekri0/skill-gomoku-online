@@ -41,11 +41,14 @@ npm run dev:server:local
 
 ## Localhost online test
 
-In Lobby choose online mode and use:
-
-- Server URL: `ws://127.0.0.1:8080/ws`
-- Same room id on both clients
-- Different player names
+1. Start server and web client.
+2. Open two browser tabs.
+3. In both tabs select `联机对战`, set server URL to `ws://127.0.0.1:8080/ws`.
+4. Register/login with two different accounts.
+5. In lobby:
+   - Player A creates room and chooses black/white.
+   - Player B joins that room.
+6. After a game ends, host can click `再来一局` and choose whether to swap colors.
 
 You can verify server health by:
 
@@ -71,6 +74,12 @@ This route targets:
 - `ws://<PUBLIC_IP>/ws`
 
 No domain is required for this route.
+
+## Account persistence
+
+- Account data is stored in JSON: `server/data/accounts.json`.
+- Room data is not persisted; if all users leave a room, the room is removed automatically.
+- You can override account file path with env var: `ACCOUNTS_FILE=/path/to/accounts.json`.
 
 ## Capacitor commands
 

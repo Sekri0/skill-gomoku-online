@@ -41,12 +41,15 @@ interface UIState {
 interface OnlineSession {
   roomId: string;
   playerName: string;
-  sessionId: string | null;
+  authToken: string;
   mySeat: PlayerId | null;
   myColor: Color | null;
+  isHost: boolean;
+  players: Partial<Record<PlayerId, { name: string }>>;
   seq: number;
   version: number;
   netStatus: ConnectionStatus;
+  rematchPending: boolean;
 }
 
 export class GameController {
@@ -120,12 +123,15 @@ export class GameController {
         ? {
             roomId: options.config.roomId ?? "",
             playerName: options.config.playerName ?? "\u73a9\u5bb6",
-            sessionId: null,
+            authToken: options.config.authToken ?? "",
             mySeat: null,
             myColor: null,
+            isHost: false,
+            players: {},
             seq: 0,
             version: 0,
-            netStatus: "idle"
+            netStatus: "idle",
+            rematchPending: false
           }
         : null;
 
@@ -187,6 +193,9 @@ export class GameController {
     this.ui.newGameButton.addEventListener("click", () => {
       this.options.onExitToLobby();
     });
+    this.ui.rematchButton.addEventListener("click", () => {
+      this.handleRematchClick();
+    });
 
     this.ui.bgmToggle.addEventListener("change", () => {
       this.audio.setBgmEnabled(this.ui.bgmToggle.checked);
@@ -213,12 +222,10 @@ export class GameController {
         if (!this.online) return;
         this.online.netStatus = status;
         if (status === "connected") {
-          this.uiState.instruction = "\u5df2\u8fde\u63a5\u670d\u52a1\u5668\uff0c\u6b63\u5728\u8fdb\u5165\u623f\u95f4...";
+          this.uiState.instruction = "\u5df2\u8fde\u63a5\u670d\u52a1\u5668\uff0c\u6b63\u5728\u8fdb\u884c\u767b\u5f55...";
           this.sendOnline({
-            type: "joinRoom",
-            roomId: this.online.roomId,
-            playerName: this.online.playerName,
-            sessionId: this.online.sessionId ?? undefined
+            type: "authWithToken",
+            token: this.online.authToken
           });
         } else if (status === "reconnecting") {
           this.uiState.instruction = "\u7f51\u7edc\u65ad\u5f00\uff0c\u6b63\u5728\u91cd\u8fde...";
@@ -238,8 +245,8 @@ export class GameController {
 
   private async bootstrapOnline(): Promise<void> {
     if (!this.netClient || !this.online) return;
-    if (!this.options.config.wsUrl) {
-      this.uiState.instruction = "\u7f3a\u5c11\u8054\u673a\u5730\u5740\uff0c\u65e0\u6cd5\u8fde\u63a5";
+    if (!this.options.config.wsUrl || !this.online.authToken) {
+      this.uiState.instruction = "\u7f3a\u5c11\u8054\u673a\u53c2\u6570\uff0c\u65e0\u6cd5\u8fde\u63a5";
       this.render();
       return;
     }
@@ -255,10 +262,23 @@ export class GameController {
   private handleServerMessage(msg: ServerToClientMessage): void {
     if (!this.online) return;
 
+    if (msg.type === "authOk") {
+      this.online.playerName = msg.username;
+      this.uiState.instruction = "\u767b\u5f55\u6210\u529f\uff0c\u6b63\u5728\u8fdb\u5165\u623f\u95f4...";
+      this.sendOnline({
+        type: "joinRoom",
+        roomId: this.online.roomId
+      });
+      this.render();
+      return;
+    }
+
     if (msg.type === "joined") {
-      this.online.sessionId = msg.sessionId;
       this.online.mySeat = msg.seat;
       this.online.myColor = msg.color;
+      this.online.isHost = msg.isHost;
+      this.online.playerName = msg.username;
+      this.syncPanelOrder();
       this.uiState.instruction = "\u5df2\u8fdb\u5165\u623f\u95f4\uff0c\u7b49\u5f85\u5bf9\u624b\u5e76\u51c6\u5907\u5f00\u5c40";
       this.sendOnline({ type: "ready", roomId: this.online.roomId });
       this.render();
@@ -267,7 +287,13 @@ export class GameController {
 
     if (msg.type === "roomState") {
       this.online.version = msg.version;
+      const nextPlayers: Partial<Record<PlayerId, { name: string }>> = {};
+      for (const p of msg.players) {
+        nextPlayers[p.seat] = { name: p.name };
+      }
+      this.online.players = nextPlayers;
       this.state = deserializeGameState(msg.state);
+      this.online.rematchPending = false;
       this.uiState.instruction = this.instructionByState(msg.readyMap.P1 && msg.readyMap.P2);
       this.render();
       return;
@@ -294,6 +320,12 @@ export class GameController {
       return;
     }
 
+    if (msg.type === "authError") {
+      this.uiState.instruction = `\u767b\u5f55\u5931\u8d25\uff1a${msg.message}`;
+      this.render();
+      return;
+    }
+
     if (msg.type === "gameOver") {
       this.online.version = msg.version;
       this.state = deserializeGameState(msg.state);
@@ -302,8 +334,23 @@ export class GameController {
       return;
     }
 
+    if (msg.type === "rematchRequested") {
+      this.online.rematchPending = true;
+      this.uiState.instruction = msg.swapColors
+        ? "\u623f\u4e3b\u53d1\u8d77\u4e86\u518d\u6765\u4e00\u5c40\uff08\u4ea4\u6362\u9ed1\u767d\uff09"
+        : "\u623f\u4e3b\u53d1\u8d77\u4e86\u518d\u6765\u4e00\u5c40\uff08\u4fdd\u6301\u9ed1\u767d\uff09";
+      this.render();
+      return;
+    }
+
     if (msg.type === "playerLeft") {
       this.uiState.instruction = "\u5bf9\u624b\u79bb\u7ebf\uff0c\u7b49\u5f85\u5176\u91cd\u8fde\uff0860\u79d2\uff09";
+      this.render();
+      return;
+    }
+
+    if (msg.type === "roomClosed") {
+      this.uiState.instruction = "\u623f\u95f4\u5df2\u89e3\u6563\uff0c\u70b9\u51fb\u201c\u65b0\u6e38\u620f\u201d\u8fd4\u56de";
       this.render();
       return;
     }
@@ -322,6 +369,29 @@ export class GameController {
       return "\u7b49\u5f85\u5bf9\u624b\u64cd\u4f5c";
     }
     return "\u8bf7\u5728\u68cb\u76d8\u843d\u4e0b\u4e00\u5b50";
+  }
+
+  private syncPanelOrder(): void {
+    if (!this.online?.mySeat) return;
+    this.ui.container.classList.toggle("online-self-p1", this.online.mySeat === "P1");
+    this.ui.container.classList.toggle("online-self-p2", this.online.mySeat === "P2");
+  }
+
+  private handleRematchClick(): void {
+    if (!this.online || !this.online.isHost || !this.state.winner) return;
+    const swap = window.confirm(
+      "\u662f\u5426\u4ea4\u6362\u9ed1\u767d\u65b9\u540e\u518d\u6765\u4e00\u5c40\uff1f\n\u70b9\u201c\u786e\u5b9a\u201d=\u4ea4\u6362\uff0c\u70b9\u201c\u53d6\u6d88\u201d=\u4fdd\u6301"
+    );
+    this.sendOnline({
+      type: "rematchRequest",
+      roomId: this.online.roomId,
+      swapColors: swap
+    });
+    this.online.rematchPending = true;
+    this.uiState.instruction = swap
+      ? "\u5df2\u53d1\u8d77\u518d\u6765\u4e00\u5c40\uff08\u4ea4\u6362\u9ed1\u767d\uff09\uff0c\u7b49\u5f85\u5bf9\u624b"
+      : "\u5df2\u53d1\u8d77\u518d\u6765\u4e00\u5c40\uff08\u4fdd\u6301\u9ed1\u767d\uff09\uff0c\u7b49\u5f85\u5bf9\u624b";
+    this.render();
   }
 
   private canInteractWithBoard(): boolean {
@@ -475,12 +545,27 @@ export class GameController {
     };
     renderBoard(ctx, this.state, boardUi);
 
+    const playerTitles = this.online
+      ? {
+          P1: this.online.players.P1
+            ? `${this.online.players.P1.name}${this.online.mySeat === "P1" ? "\uff08\u6211\uff09" : ""}`
+            : "\u73a9\u5bb61",
+          P2: this.online.players.P2
+            ? `${this.online.players.P2.name}${this.online.mySeat === "P2" ? "\uff08\u6211\uff09" : ""}`
+            : "\u73a9\u5bb62"
+        }
+      : undefined;
+
     updatePanels(this.ui, this.state, {
       modeLabel: this.online ? `\u8054\u673a\u5bf9\u6218\uff08${netStatusText(this.online.netStatus)}\uff09` : "\u672c\u5730\u5bf9\u6218",
       roomLabel: this.online ? `\u623f\u95f4\uff1a${this.online.roomId}` : "\u623f\u95f4\uff1a-",
       instruction: this.uiState.instruction,
       targetingSkill: this.uiState.targetingSkill,
-      cleanerAxis: this.uiState.cleanerAxis
+      cleanerAxis: this.uiState.cleanerAxis,
+      playerTitles,
+      showRematch: Boolean(this.online && this.online.isHost && this.state.winner),
+      rematchLabel: this.online?.rematchPending ? "\u5df2\u53d1\u8d77\u518d\u6765\u4e00\u5c40" : "\u518d\u6765\u4e00\u5c40",
+      rematchEnabled: Boolean(this.online && this.online.isHost && this.state.winner && !this.online.rematchPending)
     });
   }
 }
@@ -502,8 +587,14 @@ function netStatusText(status: ConnectionStatus): string {
 
 function toRejectedText(code: string, fallback: string): string {
   const map: Record<string, string> = {
+    AUTH_REQUIRED: "\u8bf7\u5148\u767b\u5f55",
+    AUTH_FAILED: "\u8d26\u53f7\u6216\u5bc6\u7801\u9519\u8bef",
+    USER_EXISTS: "\u7528\u6237\u540d\u5df2\u5b58\u5728",
     ROOM_FULL: "\u623f\u95f4\u5df2\u6ee1",
+    ROOM_LIMIT_REACHED: "\u623f\u95f4\u6570\u5df2\u8fbe\u4e0a\u9650",
     ROOM_NOT_FOUND: "\u623f\u95f4\u4e0d\u5b58\u5728",
+    ALREADY_IN_ROOM: "\u5df2\u5728\u623f\u95f4\u4e2d",
+    NOT_HOST: "\u53ea\u6709\u623f\u4e3b\u53ef\u64cd\u4f5c",
     INVALID_ACTION: "\u52a8\u4f5c\u65e0\u6548",
     NOT_YOUR_TURN: "\u672a\u5230\u4f60\u7684\u56de\u5408",
     SKILL_USED: "\u6280\u80fd\u5df2\u4f7f\u7528",

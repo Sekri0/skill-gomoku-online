@@ -13,6 +13,10 @@ export interface PanelViewState {
   instruction: string;
   targetingSkill: SkillId | null;
   cleanerAxis: "row" | "col";
+  playerTitles?: Partial<Record<PlayerId, string>>;
+  showRematch: boolean;
+  rematchLabel: string;
+  rematchEnabled: boolean;
 }
 
 export interface GameUI {
@@ -28,6 +32,7 @@ export interface GameUI {
   axisRowButton: HTMLButtonElement;
   axisColButton: HTMLButtonElement;
   newGameButton: HTMLButtonElement;
+  rematchButton: HTMLButtonElement;
   playerPanels: Record<PlayerId, HTMLElement>;
   skillButtons: Record<PlayerId, Record<SkillId, HTMLButtonElement>>;
   bgmToggle: HTMLInputElement;
@@ -74,6 +79,7 @@ export function mountGameLayout(root: HTMLElement): GameUI {
 
         <div class="controls">
           <button class="ghost-btn" id="new-game-btn">\u65b0\u6e38\u620f</button>
+          <button class="ghost-btn" id="rematch-btn" style="display:none;"></button>
           <button class="ghost-btn" id="cancel-btn" style="display:none;">\u53d6\u6d88\uff08ESC\uff09</button>
           <div class="axis-group" id="axis-group">
             <button class="ghost-btn" id="axis-row-btn">\u884c</button>
@@ -108,6 +114,7 @@ export function mountGameLayout(root: HTMLElement): GameUI {
     axisRowButton: q("axis-row-btn"),
     axisColButton: q("axis-col-btn"),
     newGameButton: q("new-game-btn"),
+    rematchButton: q("rematch-btn"),
     playerPanels: {
       P1: q("panel-P1"),
       P2: q("panel-P2")
@@ -150,8 +157,8 @@ export function updatePanels(
   ui.playerPanels.P1.classList.toggle("active", !state.winner && currentPlayer === "P1");
   ui.playerPanels.P2.classList.toggle("active", !state.winner && currentPlayer === "P2");
 
-  setText("title-P1", "\u73a9\u5bb61");
-  setText("title-P2", "\u73a9\u5bb62");
+  setText("title-P1", view.playerTitles?.P1 ?? "\u73a9\u5bb61");
+  setText("title-P2", view.playerTitles?.P2 ?? "\u73a9\u5bb62");
   setText("color-P1", `\u6267\u5b50\uff1a${state.playerColors.P1 === "black" ? "\u9ed1" : "\u767d"}`);
   setText("color-P2", `\u6267\u5b50\uff1a${state.playerColors.P2 === "black" ? "\u9ed1" : "\u767d"}`);
 
@@ -176,6 +183,10 @@ export function updatePanels(
   axisGroup.style.display = view.targetingSkill === "cleaner" ? "flex" : "none";
   ui.axisRowButton.style.background = view.cleanerAxis === "row" ? "#e6bb79" : "#efe6d2";
   ui.axisColButton.style.background = view.cleanerAxis === "col" ? "#e6bb79" : "#efe6d2";
+
+  ui.rematchButton.style.display = view.showRematch ? "inline-block" : "none";
+  ui.rematchButton.textContent = view.rematchLabel;
+  ui.rematchButton.disabled = !view.rematchEnabled;
 
   if (state.winner) {
     ui.winnerBanner.style.display = "block";

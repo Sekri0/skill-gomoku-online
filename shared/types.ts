@@ -49,6 +49,7 @@ export interface Config {
   wsUrl?: string;
   roomId?: string;
   playerName?: string;
+  authToken?: string;
 }
 
 export interface SkillsUsed {
