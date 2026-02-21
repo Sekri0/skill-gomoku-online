@@ -1,113 +1,101 @@
-# Tencent Cloud CentOS Deployment (Public IP Route, No Domain)
+# 腾讯云 CentOS 部署指南（公网 IP + 8080 + ws）
 
-This guide deploys the current WebSocket server with **public IP + ws**.
+本指南使用最简路线：不依赖域名，不依赖 Nginx，客户端直连：
 
-Target endpoint for clients:
+- `ws://<PUBLIC_IP>:8080/ws`
+- 健康检查：`http://<PUBLIC_IP>:8080/health`
 
-- `ws://<PUBLIC_IP>/ws`
+## 1. 前置条件
 
-Health checks:
+- 系统：CentOS / OpenCloudOS
+- 安全组已放行：`22`、`8080`
+- 已能通过 SSH 登录
 
-- `http://<PUBLIC_IP>/health`
-
-## 1) Prerequisites
-
-- Tencent Cloud security group allows: `22`, `80`.
-- SSH access to your server.
-- CentOS/OpenCloudOS server.
-
-## 2) Bootstrap dependencies
-
-Run on server:
+## 2. 安装依赖（服务器执行）
 
 ```bash
+cd /path/to/your/repo
 sudo bash deploy/scripts/centos_bootstrap.sh
 ```
 
-## 3) Clone and install project
+## 3. 拉取项目
 
 ```bash
-sudo mkdir -p /opt/skill-gomoku-online
-sudo chown -R $USER:$USER /opt/skill-gomoku-online
-cd /opt/skill-gomoku-online
-
-# replace with your repo URL
+mkdir -p /root/skill-gomoku-online
+cd /root/skill-gomoku-online
 git clone <YOUR_REPO_URL> .
-
-npm install
-npm --prefix server install
-npm --prefix server run build
 ```
 
-## 4) Start server with PM2
+## 4. 首次启动服务（PM2）
 
 ```bash
-cd /opt/skill-gomoku-online
-pm2 start deploy/pm2/ecosystem.config.cjs
-pm2 save
-pm2 startup
+cd /root/skill-gomoku-online
+bash deploy/scripts/tencent_server_start_8080.sh
 ```
 
-If `pm2 startup` prints an extra command, run it once and then run:
+检查状态：
 
 ```bash
-pm2 save
-```
-
-## 5) Configure Nginx reverse proxy
-
-Template already uses `server_name _;`, no domain replacement needed.
-
-```bash
-sudo cp deploy/nginx/gomoku.conf /etc/nginx/conf.d/gomoku.conf
-sudo nginx -t
-sudo systemctl enable nginx
-sudo systemctl restart nginx
-```
-
-## 6) Verify service
-
-```bash
+pm2 status gomoku-ws
 curl http://127.0.0.1:8080/health
-curl http://127.0.0.1/health
-curl http://<PUBLIC_IP>/health
 ```
 
-Expected: `ok`
+预期返回：`ok`
 
-## 7) Client configuration
+## 5. 客户端连接配置
 
-In game lobby:
+在游戏联机界面填写：
 
-- Server URL: `ws://<PUBLIC_IP>/ws`
-- Same room id for both players
-- Different player names
+- `ws://<PUBLIC_IP>:8080/ws`
 
-## 8) Update deployment later
+例如：
+
+- `ws://1.13.164.21:8080/ws`
+
+## 6. 后续更新部署
 
 ```bash
-cd /opt/skill-gomoku-online
-bash deploy/scripts/deploy_update.sh
+cd /root/skill-gomoku-online
+git pull --ff-only
+bash deploy/scripts/tencent_server_update_8080.sh
 ```
 
-## 9) Troubleshooting
+## 7. 账号文件与 Git 冲突处理
 
-Check process and ports:
+账号数据保存在：
+
+- `server/data/accounts.json`
+
+该文件已在 `.gitignore`，不会再阻塞 `git pull`。
+
+如果你的旧服务器之前跟踪过该文件，先执行一次：
+
+```bash
+cd /root/skill-gomoku-online
+git rm --cached server/data/accounts.json
+git restore server/data/accounts.json
+```
+
+## 8. 故障排查
+
+查看进程和日志：
 
 ```bash
 pm2 ls
 pm2 logs gomoku-ws --lines 200
-ss -lntp | grep -E ':80|:8080'
 ```
 
-Check nginx:
+查看端口监听：
 
 ```bash
-sudo nginx -t
-sudo systemctl status nginx --no-pager -l
-sudo journalctl -u nginx -n 200 --no-pager
+ss -lntp | grep -E ':8080'
 ```
 
----
+公网可达性：
 
-Note: this route uses plain `ws` (no TLS). It is suitable for temporary small-group play, not production security.
+```bash
+curl http://127.0.0.1:8080/health
+curl http://<PUBLIC_IP>:8080/health
+```
+
+如果公网不通，优先检查腾讯云安全组和系统防火墙。
