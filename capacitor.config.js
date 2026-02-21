@@ -1,6 +1,10 @@
 var config = {
     appId: "com.example.skillgomoku",
     appName: "Skill Gomoku",
-    webDir: "dist"
+    webDir: "dist",
+    server: {
+        androidScheme: "http",
+        cleartext: true
+    }
 };
 export default config;

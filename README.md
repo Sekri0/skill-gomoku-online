@@ -1,111 +1,118 @@
 # Skill Gomoku
 
-前端：Vite + TypeScript + Canvas  
-服务端：Node.js + WebSocket  
-联机默认技术路线：`8080 + ws://`
+15x15 技能五子棋（Vite + TypeScript + Canvas + Capacitor）。
 
-## 1) 环境要求
+默认联机地址：`ws://1.13.164.21:8080/ws`
+
+## 1. 环境要求
 
 - Node.js 18+（建议 20）
 - npm
-- Bash 环境（Linux/macOS 或 Windows 的 Git Bash / WSL）
+- Android Studio（Android 调试/打包）
 
-## 2) 脚本总览
+## 2. 本地启动
 
-本仓库已提供可直接执行的 Bash 脚本：
+### PowerShell（Windows）
 
-- 本地 client：`scripts/dev_client.sh`
-- 本地 server：`scripts/dev_server_local.sh`
-- 本地 client+server 一键联调：`scripts/dev_local_fullstack.sh`
-- 腾讯云首次启动 server（PM2, 8080）：`deploy/scripts/tencent_server_start_8080.sh`
-- 腾讯云更新并重启 server（PM2, 8080）：`deploy/scripts/tencent_server_update_8080.sh`
-
-首次使用先加执行权限：
-
-```bash
-chmod +x scripts/*.sh deploy/scripts/*.sh
+```powershell
+.\scripts\dev_client.ps1
+.\scripts\dev_server_local.ps1
 ```
 
-## 3) 方案A：本地部署 client + 腾讯云部署 server
+或一键联调：
 
-### A-1 腾讯云服务器启动（CentOS / OpenCloudOS）
+```powershell
+.\scripts\dev_local_fullstack.ps1
+```
+
+### Bash（Linux/macOS/Git Bash）
+
+```bash
+bash scripts/dev_client.sh
+bash scripts/dev_server_local.sh
+```
+
+或一键联调：
+
+```bash
+bash scripts/dev_local_fullstack.sh
+```
+
+## 3. 联机两种方式
+
+### A. 本地 Client + 腾讯云 Server
+
+腾讯云首次启动：
 
 ```bash
 cd /root/skill-gomoku-online
 bash deploy/scripts/tencent_server_start_8080.sh
 ```
 
-健康检查：
+腾讯云更新部署：
 
 ```bash
-curl http://127.0.0.1:8080/health
+cd /root/skill-gomoku-online
+bash deploy/scripts/tencent_server_update_8080.sh
 ```
 
-返回 `ok` 即正常。
+前端联机地址填写：
 
-### A-2 本地启动前端
+`ws://1.13.164.21:8080/ws`
 
-```bash
-cd /path/to/skill-gomoku-online
-bash scripts/dev_client.sh
+### B. 本地 Client + 本地 Server
+
+联机地址填写：
+
+`ws://127.0.0.1:8080/ws`
+
+## 4. Android
+
+准备 Android 工程：
+
+```powershell
+.\scripts\android_prepare.ps1
 ```
 
-浏览器打开 `http://127.0.0.1:5173`（或终端显示地址）。
-
-### A-3 游戏内填写联机地址
-
-- 模式：`联机对战`
-- 服务器地址：`ws://<你的腾讯云公网IP>:8080/ws`
-
-例如：
-
-- `ws://1.13.164.21:8080/ws`
-
-### A-4 验证流程
-
-- 两个浏览器标签页分别注册/登录不同账号
-- A 创建房间并选择黑白
-- B 加入同一房间
-- 结束后房主点击“再来一局”（可选交换黑白）
-
-## 4) 方案B：本地部署 client + 本地 localhost 充当 server
-
-一键联调：
+或：
 
 ```bash
-cd /path/to/skill-gomoku-online
-bash scripts/dev_local_fullstack.sh
+bash scripts/android_prepare.sh
 ```
 
-或分开启动：
+打开 Android Studio：
 
 ```bash
-bash scripts/dev_server_local.sh
-bash scripts/dev_client.sh
-```
-
-游戏内联机地址填：
-
-- `ws://127.0.0.1:8080/ws`
-
-## 5) 账号与房间规则（当前实现）
-
-- 账号持久化：`server/data/accounts.json`
-- 房间不持久化：房间内用户全部退出后自动消失
-- 可通过环境变量覆盖账号文件路径：`ACCOUNTS_FILE=/path/to/accounts.json`
-
-## 6) 构建
-
-```bash
-npm run build
-npm --prefix server run build
-```
-
-## 7) Android (Capacitor)
-
-```bash
-npm run cap:init
-npm run cap:add-android
-npm run cap:copy
 npm run cap:open
+```
+
+当前使用 `ws://`，需确保：
+
+- `AndroidManifest.xml` 有 `INTERNET` 权限
+- `application` 上开启 `android:usesCleartextTraffic="true"`
+- `capacitor.config.ts` 已设置：
+  - `server.androidScheme = "http"`
+  - `server.cleartext = true`
+
+## 5. 账号与房间
+
+- 账号持久化：`server/data/accounts.json`（运行时文件，不纳入 Git）
+- 模板文件：`server/data/accounts.example.json`
+- 房间不持久化：房间玩家全部退出后自动销毁
+- 可用环境变量覆盖账号文件：`ACCOUNTS_FILE=/path/to/accounts.json`
+
+## 6. 一键拉取部署（避免 git pull 冲突）
+
+已做的约定：
+
+- `server/data/accounts.json` 已加入 `.gitignore`
+- `*.tsbuildinfo` 已加入 `.gitignore`
+- 部署脚本改为 `npm ci`，不会改写 lock 文件
+
+因此服务端可直接：
+
+```bash
+cd /root/skill-gomoku-online
+git pull --ff-only
+bash deploy/scripts/tencent_server_update_8080.sh
 ```

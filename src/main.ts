@@ -25,27 +25,25 @@ let hallState: {
 renderModeSelect();
 
 function renderModeSelect(): void {
-  const runtimeHost = window.location.hostname;
-  const isLocalHost = runtimeHost === "127.0.0.1" || runtimeHost === "localhost";
-  const fallbackWs = isLocalHost ? "ws://127.0.0.1:8080/ws" : `ws://${runtimeHost}/ws`;
-  const defaultWs = (import.meta.env.VITE_WS_URL as string | undefined) ?? fallbackWs;
+  const defaultWs =
+    (import.meta.env.VITE_WS_URL as string | undefined) ?? "ws://1.13.164.21:8080/ws";
   appRoot.innerHTML = `
     <div class="app-shell">
       <section class="lobby">
         <h1>Skill Gomoku</h1>
         <div class="row">
-          <label for="mode-select">\u6a21\u5f0f\u9009\u62e9\uff1a</label>
-          <select id="mode-select">
-            <option value="local">\u672c\u5730\u5bf9\u6218</option>
-            <option value="online">\u8054\u673a\u5bf9\u6218</option>
-          </select>
+          <label>\u6a21\u5f0f\u9009\u62e9\uff1a</label>
+          <button id="mode-local-btn" class="primary-btn">\u672c\u5730\u5bf9\u6218</button>
+          <button id="mode-online-btn" class="ghost-btn">\u8054\u673a\u5bf9\u6218</button>
         </div>
-        <div class="row">
+        <div id="local-fields">
+          <div class="row">
           <label for="p1-color">\u73a9\u5bb61\u6267\u5b50\uff1a</label>
           <select id="p1-color">
             <option value="black">\u6267\u9ed1\uff08\u5148\u624b\uff09</option>
             <option value="white">\u6267\u767d\uff08\u540e\u624b\uff09</option>
           </select>
+          </div>
         </div>
         <div id="online-fields" style="display:none;">
           <div class="row">
@@ -61,22 +59,32 @@ function renderModeSelect(): void {
     </div>
   `;
 
-  const modeSelect = document.getElementById("mode-select") as HTMLSelectElement;
+  let mode: Mode = "local";
+  const localModeBtn = document.getElementById("mode-local-btn") as HTMLButtonElement;
+  const onlineModeBtn = document.getElementById("mode-online-btn") as HTMLButtonElement;
   const startBtn = document.getElementById("start-btn") as HTMLButtonElement;
   const p1ColorSelect = document.getElementById("p1-color") as HTMLSelectElement;
+  const localFields = document.getElementById("local-fields") as HTMLDivElement;
   const onlineFields = document.getElementById("online-fields") as HTMLDivElement;
   const wsUrlInput = document.getElementById("ws-url") as HTMLInputElement;
 
   const syncModeFields = () => {
-    const mode = modeSelect.value as Mode;
+    localFields.style.display = mode === "local" ? "block" : "none";
     onlineFields.style.display = mode === "online" ? "block" : "none";
-    p1ColorSelect.disabled = mode === "online";
+    localModeBtn.className = mode === "local" ? "primary-btn" : "ghost-btn";
+    onlineModeBtn.className = mode === "online" ? "primary-btn" : "ghost-btn";
   };
-  modeSelect.addEventListener("change", syncModeFields);
+  localModeBtn.addEventListener("click", () => {
+    mode = "local";
+    syncModeFields();
+  });
+  onlineModeBtn.addEventListener("click", () => {
+    mode = "online";
+    syncModeFields();
+  });
   syncModeFields();
 
   startBtn.addEventListener("click", async () => {
-    const mode = modeSelect.value as Mode;
     const p1Color = (p1ColorSelect.value as Color) || "black";
     const audio = new AudioManager();
     await audio.initFromGesture();

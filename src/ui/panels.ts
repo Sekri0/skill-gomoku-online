@@ -57,11 +57,15 @@ export function mountGameLayout(root: HTMLElement): GameUI {
         </div>
 
         <section class="player-panel" id="panel-P1">
-          <div class="player-title" id="title-P1">\u73a9\u5bb61</div>
-          <div id="color-P1"></div>
-          <button class="skill-btn" id="skill-P1-flySand"></button>
-          <button class="skill-btn" id="skill-P1-mountain"></button>
-          <button class="skill-btn" id="skill-P1-cleaner"></button>
+          <div class="player-head">
+            <div class="player-title" id="title-P1">\u73a9\u5bb61</div>
+            <div class="player-color" id="color-P1"></div>
+          </div>
+          <div class="skill-row">
+            <button class="skill-btn" id="skill-P1-flySand"></button>
+            <button class="skill-btn" id="skill-P1-mountain"></button>
+            <button class="skill-btn" id="skill-P1-cleaner"></button>
+          </div>
         </section>
 
         <div class="board-wrap" id="board-wrap">
@@ -70,11 +74,15 @@ export function mountGameLayout(root: HTMLElement): GameUI {
         </div>
 
         <section class="player-panel" id="panel-P2">
-          <div class="player-title" id="title-P2">\u73a9\u5bb62</div>
-          <div id="color-P2"></div>
-          <button class="skill-btn" id="skill-P2-flySand"></button>
-          <button class="skill-btn" id="skill-P2-mountain"></button>
-          <button class="skill-btn" id="skill-P2-cleaner"></button>
+          <div class="player-head">
+            <div class="player-title" id="title-P2">\u73a9\u5bb62</div>
+            <div class="player-color" id="color-P2"></div>
+          </div>
+          <div class="skill-row">
+            <button class="skill-btn" id="skill-P2-flySand"></button>
+            <button class="skill-btn" id="skill-P2-mountain"></button>
+            <button class="skill-btn" id="skill-P2-cleaner"></button>
+          </div>
         </section>
 
         <div class="controls">

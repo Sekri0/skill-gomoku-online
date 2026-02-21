@@ -42,7 +42,7 @@ input {
 }
 
 .app-shell {
-  max-width: 1200px;
+  max-width: 720px;
   margin: 0 auto;
   padding: 12px;
 }
@@ -99,13 +99,25 @@ input {
 
 .game {
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) auto minmax(150px, 1fr);
+  grid-template-columns: 1fr;
   gap: 10px;
   align-items: start;
 }
 
+.game #panel-P1 {
+  order: 2;
+}
+
+.game .board-wrap {
+  order: 3;
+}
+
+.game #panel-P2 {
+  order: 4;
+}
+
 .hud {
-  grid-column: 1 / -1;
+  order: 1;
   display: grid;
   gap: 6px;
   padding: 10px;
@@ -124,15 +136,23 @@ input {
   border: 1px solid #7c684f;
   border-radius: 10px;
   background: var(--panel);
-  padding: 10px;
+  padding: 8px;
 }
 
 .game.online-self-p1 #panel-P1 {
-  grid-column: 3;
+  order: 4;
 }
 
 .game.online-self-p1 #panel-P2 {
-  grid-column: 1;
+  order: 2;
+}
+
+.game.online-self-p2 #panel-P1 {
+  order: 2;
+}
+
+.game.online-self-p2 #panel-P2 {
+  order: 4;
 }
 
 .player-panel.active {
@@ -142,18 +162,41 @@ input {
 
 .player-title {
   font-weight: 700;
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.player-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
   margin-bottom: 6px;
 }
 
+.player-color {
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.skill-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
 .skill-btn {
-  width: 100%;
-  margin-top: 6px;
+  flex: 0 0 auto;
+  min-width: 88px;
   border: 1px solid #7d674e;
   border-radius: 8px;
   background: #f0e2c7;
-  padding: 6px 8px;
+  padding: 5px 8px;
   cursor: pointer;
-  text-align: left;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .skill-btn.active {
@@ -169,10 +212,11 @@ input {
 
 .board-wrap {
   position: relative;
-  width: min(78vmin, 760px);
-  height: min(78vmin, 760px);
-  min-width: 320px;
-  min-height: 320px;
+  width: min(92vw, 640px);
+  aspect-ratio: 1 / 1;
+  min-width: 280px;
+  min-height: 280px;
+  margin: 0 auto;
 }
 
 #board-canvas {
@@ -199,7 +243,7 @@ input {
 }
 
 .controls {
-  grid-column: 1 / -1;
+  order: 5;
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
@@ -218,21 +262,4 @@ input {
 .axis-group {
   display: none;
   gap: 6px;
-}
-
-@media (max-width: 900px) {
-  .game {
-    grid-template-columns: 1fr;
-  }
-
-  .player-panel {
-    order: 2;
-  }
-
-  .board-wrap {
-    order: 1;
-    margin: 0 auto;
-    width: min(92vmin, 760px);
-    height: min(92vmin, 760px);
-  }
 }

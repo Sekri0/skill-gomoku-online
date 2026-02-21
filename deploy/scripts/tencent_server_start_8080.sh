@@ -7,7 +7,7 @@ PM2_NAME="${PM2_NAME:-gomoku-ws}"
 
 cd "$APP_DIR"
 
-npm --prefix server install
+npm --prefix server ci
 npm --prefix server run build
 
 pm2 delete "$PM2_NAME" >/dev/null 2>&1 || true

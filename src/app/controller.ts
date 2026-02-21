@@ -293,6 +293,9 @@ export class GameController {
       }
       this.online.players = nextPlayers;
       this.state = deserializeGameState(msg.state);
+      if (this.online.mySeat) {
+        this.online.myColor = this.state.playerColors[this.online.mySeat];
+      }
       this.online.rematchPending = false;
       this.uiState.instruction = this.instructionByState(msg.readyMap.P1 && msg.readyMap.P2);
       this.render();

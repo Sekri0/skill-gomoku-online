@@ -10,8 +10,8 @@ cd "$APP_DIR"
 git fetch --all --prune
 git pull --ff-only
 
-npm install
-npm --prefix server install
+npm ci
+npm --prefix server ci
 npm --prefix server run build
 
 if pm2 describe "$PM2_NAME" >/dev/null 2>&1; then
